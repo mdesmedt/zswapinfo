@@ -120,3 +120,40 @@ fn main() {
         &format!("{} of used", pct(stored, swap_used)),
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::meminfo;
+
+    const MEMINFO: &str = "\
+MemTotal:       16264804 kB
+SwapCached:        12345 kB
+SwapTotal:       8388604 kB
+SwapFree:        6686652 kB
+Zswap:            516412 kB
+Zswapped:        1394176 kB
+";
+
+    /// Keys sharing a prefix (`Zswap`/`Zswapped`, `Swap*`) must not match
+    /// each other's lines.
+    #[test]
+    fn meminfo_matches_exact_key() {
+        assert_eq!(meminfo(MEMINFO, "MemTotal"), Some(16264804 * 1024));
+        assert_eq!(meminfo(MEMINFO, "SwapTotal"), Some(8388604 * 1024));
+        assert_eq!(meminfo(MEMINFO, "SwapFree"), Some(6686652 * 1024));
+        assert_eq!(meminfo(MEMINFO, "Zswap"), Some(516412 * 1024));
+        assert_eq!(meminfo(MEMINFO, "Zswapped"), Some(1394176 * 1024));
+        assert_eq!(meminfo(MEMINFO, "Swap"), None);
+
+        let reversed = "Zswapped:  2048 kB\nZswap:  1024 kB\n";
+        assert_eq!(meminfo(reversed, "Zswap"), Some(1024 * 1024));
+    }
+
+    /// Kernels before 5.19 have no `Zswap`/`Zswapped` lines.
+    #[test]
+    fn meminfo_missing_key() {
+        let text = "MemTotal:  1000 kB\nSwapTotal:  0 kB\n";
+        assert_eq!(meminfo(text, "Zswap"), None);
+        assert_eq!(meminfo(text, "Zswapped"), None);
+    }
+}

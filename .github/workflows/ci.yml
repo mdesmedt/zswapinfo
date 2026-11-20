@@ -30,3 +30,6 @@ jobs:
 
       - name: cargo build
         run: nix develop --command cargo build
+
+      - name: cargo test
+        run: nix develop --command cargo test

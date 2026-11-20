@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: build (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: cargo fmt --check
+        run: nix develop --command cargo fmt --check
+
+      - name: cargo clippy
+        run: nix develop --command cargo clippy --all-targets -- -D warnings
+
+      - name: cargo build
+        run: nix develop --command cargo build
